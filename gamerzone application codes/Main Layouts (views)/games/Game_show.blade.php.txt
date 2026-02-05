@@ -1,0 +1,162 @@
+@extends('layouts.app')
+
+@section('title', $game->game_name . ' - GamerZone')
+
+@section('content')
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('games.index') }}" class="text-decoration-none">Games</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ $game->game_name }}</li>
+        </ol>
+    </nav>
+    
+    <!-- Game Header -->
+    <div class="card mb-4">
+        <div class="row g-0">
+            <div class="col-md-4">
+                <img src="{{ $game->image_url ?: asset('images/placeholder-game.jpg') }}" 
+                     alt="{{ $game->game_name }}" class="img-fluid rounded-start h-100 object-fit-cover">
+            </div>
+            <div class="col-md-8">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h1 class="card-title">{{ $game->game_name }}</h1>
+                        @if($game->is_popular)
+                            <span class="badge bg-danger">
+                                <i class="fas fa-fire me-1"></i> Popular
+                            </span>
+                        @endif
+                    </div>
+                    
+                    <p class="card-text">
+                        <span class="badge bg-secondary me-2">{{ $game->genre }}</span>
+                        <small class="text-muted">
+                            <i class="fas fa-building me-1"></i> Publisher: {{ $game->publisher }}
+                        </small>
+                    </p>
+                    
+                    <p class="card-text">
+                        <small class="text-muted">
+                            <i class="far fa-calendar-alt me-1"></i> Released: 
+                            {{ $game->release_date ? \Carbon\Carbon::parse($game->release_date)->format('F d, Y') : 'N/A' }}
+                        </small>
+                    </p>
+                    
+                    <p class="card-text">{{ $game->description }}</p>
+                    
+                    <div class="mt-4">
+                        <h5><i class="fas fa-tag text-primary me-2"></i> Items Available for This Game</h5>
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            <a href="#currencies" class="btn btn-outline-primary">
+                                <i class="fas fa-coins me-2"></i> In-Game Currencies ({{ $currencies->count() }})
+                            </a>
+                            <a href="#coupons" class="btn btn-outline-success">
+                                <i class="fas fa-ticket-alt me-2"></i> Game Coupons ({{ $coupons->count() }})
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- In-Game Currencies Section -->
+    <section id="currencies" class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-coins text-warning me-2"></i> In-Game Currencies</h2>
+        </div>
+        
+        <div class="row g-4">
+            @forelse($currencies as $currency)
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <img src="{{ $currency->image_url ?: asset('images/placeholder-currency.jpg') }}" 
+                             alt="{{ $currency->currency_name }}" class="card-img-top game-card-img">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ $currency->currency_name }}</h5>
+                            <p class="card-text small text-muted mb-3">{{ $currency->description }}</p>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold text-primary">${{ number_format($currency->price, 2) }}</span>
+                                <span class="badge currency-badge">{{ number_format($currency->value_amount) }} coins</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-0">
+                            <form action="{{ route('cart.add') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="item_type" value="currency">
+                                <input type="hidden" name="item_id" value="{{ $currency->currency_id }}">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-cart-plus me-2"></i> Add to Cart
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No in-game currencies available for this game yet.
+                    </div>
+                </div>
+            @endforelse
+        </div>
+    </section>
+    
+    <!-- Game Coupons Section -->
+    <section id="coupons" class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-ticket-alt text-success me-2"></i> Game Coupons</h2>
+        </div>
+        
+        <div class="row g-4">
+            @forelse($coupons as $coupon)
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <img src="{{ $coupon->image_url ?: asset('images/placeholder-coupon.jpg') }}" 
+                             alt="{{ $coupon->coupon_name }}" class="card-img-top game-card-img">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ $coupon->coupon_name }}</h5>
+                            <p class="card-text small text-muted mb-3">{{ $coupon->description }}</p>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-primary">${{ number_format($coupon->price, 2) }}</span>
+                                @if($coupon->discount_percent)
+                                    <span class="badge bg-success">{{ $coupon->discount_percent }}% OFF</span>
+                                @elseif($coupon->fixed_amount)
+                                    <span class="badge bg-success">${{ $coupon->fixed_amount }} OFF</span>
+                                @endif
+                            </div>
+                            
+                            <div class="small text-muted">
+                                <i class="far fa-clock me-1"></i> Expires: {{ \Carbon\Carbon::parse($coupon->expiry_date)->format('M d, Y') }}
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-0">
+                            <form action="{{ route('cart.add') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="item_type" value="coupon">
+                                <input type="hidden" name="item_id" value="{{ $coupon->coupon_id }}">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-cart-plus me-2"></i> Add to Cart
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No coupons available for this game yet.
+                    </div>
+                </div>
+            @endforelse
+        </div>
+    </section>
+    
+    <!-- Related Games Section - Can be implemented when you have a way to find related games -->
+</div>
+@endsection

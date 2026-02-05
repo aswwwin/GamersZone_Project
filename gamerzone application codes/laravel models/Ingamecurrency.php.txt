@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class InGameCurrency extends Model
+{
+    use HasFactory;
+    
+    protected $table = 'in_game_currencies';
+    protected $primaryKey = 'currency_id';
+    
+    protected $fillable = [
+        'game_id',
+        'currency_name',
+        'description',
+        'image_url',
+        'price',
+        'value_amount',
+        'is_active'
+    ];
+    
+    // Define relationships
+    public function game()
+    {
+        return $this->belongsTo(Game::class, 'game_id', 'game_id');
+    }
+    
+    public function orderItems()
+    {
+        return $this->morphMany(OrderItem::class, 'item');
+    }
+}

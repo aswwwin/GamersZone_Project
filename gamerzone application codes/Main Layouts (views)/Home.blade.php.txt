@@ -1,0 +1,238 @@
+@extends('layouts.app')
+
+@section('title', 'GamerZone - Buy In-Game Currency & Coupons')
+
+@section('content')
+<!-- Hero Section -->
+<section class="hero-section position-relative">
+    <div class="hero-overlay" style="background-image: url('{{ asset('images/hero-bg.jpg') }}'); background-size: cover; height: 500px; position: relative;">
+        <div class="overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7);"></div>
+        <div class="container h-100 d-flex align-items-center position-relative">
+            <div class="row">
+                <div class="col-lg-8">
+                    <h1 class="display-4 fw-bold text-white mb-4">Level Up Your Gaming Experience</h1>
+                    <p class="lead text-light mb-4">The safest platform to buy in-game currencies and coupons for all your favorite games.</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('games.index') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-gamepad me-2"></i> Browse Games
+                        </a>
+                        <a href="#featured" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-coins me-2"></i> View Currencies
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Popular Games Section -->
+<section class="py-5 bg-dark">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-title"><i class="fas fa-fire text-primary me-2"></i> Popular Games</h2>
+            <a href="{{ route('games.index') }}" class="btn btn-outline-primary">View All <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+        
+        <div class="row g-4">
+            @forelse($popularGames as $game)
+                <div class="col-md-4 col-lg-4 col-xl-2">
+                    <div class="card h-100">
+                        <img src="{{ $game->image_url ?: asset('images/placeholder-game.jpg') }}" 
+                             alt="{{ $game->game_name }}" class="game-card-img">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ $game->game_name }}</h5>
+                            <p class="card-text text-muted small">{{ $game->publisher }}</p>
+                            <span class="badge bg-secondary">{{ $game->genre }}</span>
+                        </div>
+                        <div class="card-footer bg-transparent border-0">
+                            <a href="{{ route('games.show', $game->game_id) }}" class="btn btn-primary btn-sm w-100">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No popular games available at the moment.
+                    </div>
+                </div>
+            @endforelse
+        </div>
+    </div>
+</section>
+
+<!-- Featured Currencies Section -->
+<section class="py-5 bg-black" id="featured">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-title"><i class="fas fa-coins text-warning me-2"></i> Featured In-Game Currencies</h2>
+        </div>
+        
+        <div class="row g-4">
+            @forelse($featuredCurrencies as $currency)
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <div class="position-relative">
+                            <img src="{{ $currency->image_url ?: asset('images/placeholder-currency.jpg') }}" 
+                                 alt="{{ $currency->currency_name }}" class="card-img-top game-card-img">
+                            <span class="badge bg-primary position-absolute top-0 end-0 m-2">
+                                {{ $currency->game->game_name }}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ $currency->currency_name }}</h5>
+                            <p class="card-text text-truncate text-muted small">{{ $currency->description }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="fw-bold text-primary">${{ number_format($currency->price, 2) }}</span>
+                                <span class="badge currency-badge">{{ number_format($currency->value_amount) }} coins</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-0">
+                            <form action="{{ route('cart.add') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="item_type" value="currency">
+                                <input type="hidden" name="item_id" value="{{ $currency->currency_id }}">
+                                <button type="submit" class="btn btn-primary btn-sm w-100">
+                                    <i class="fas fa-cart-plus me-1"></i> Add to Cart
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No featured currencies available at the moment.
+                    </div>
+                </div>
+            @endforelse
+        </div>
+    </div>
+</section>
+
+<!-- Featured Coupons Section -->
+<section class="py-5 bg-dark">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-title"><i class="fas fa-ticket-alt text-success me-2"></i> Featured Game Coupons</h2>
+        </div>
+        
+        <div class="row g-4">
+            @forelse($featuredCoupons as $coupon)
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <div class="position-relative">
+                            <img src="{{ $coupon->image_url ?: asset('images/placeholder-coupon.jpg') }}" 
+                                 alt="{{ $coupon->coupon_name }}" class="card-img-top game-card-img">
+                            <span class="badge bg-primary position-absolute top-0 end-0 m-2">
+                                {{ $coupon->game->game_name }}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ $coupon->coupon_name }}</h5>
+                            <p class="card-text text-truncate text-muted small">{{ $coupon->description }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="fw-bold text-primary">${{ number_format($coupon->price, 2) }}</span>
+                                @if($coupon->discount_percent)
+                                    <span class="badge bg-success">{{ $coupon->discount_percent }}% OFF</span>
+                                @elseif($coupon->fixed_amount)
+                                    <span class="badge bg-success">${{ $coupon->fixed_amount }} OFF</span>
+                                @endif
+                            </div>
+                            <div class="small text-muted mt-2">
+                                <i class="far fa-clock me-1"></i> Expires: {{ \Carbon\Carbon::parse($coupon->expiry_date)->format('M d, Y') }}
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-0">
+                            <form action="{{ route('cart.add') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="item_type" value="coupon">
+                                <input type="hidden" name="item_id" value="{{ $coupon->coupon_id }}">
+                                <button type="submit" class="btn btn-primary btn-sm w-100">
+                                    <i class="fas fa-cart-plus me-1"></i> Add to Cart
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No featured coupons available at the moment.
+                    </div>
+                </div>
+            @endforelse
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="py-5 bg-black">
+    <div class="container">
+        <h2 class="text-center mb-5"><i class="fas fa-question-circle text-primary me-2"></i> How GamerZone Works</h2>
+        
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="display-1 text-primary mb-3">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h4>1. Browse Games</h4>
+                        <p class="text-muted">Search for your favorite games and discover available in-game currencies and coupons.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="display-1 text-primary mb-3">
+                            <i class="fas fa-cart-shopping"></i>
+                        </div>
+                        <h4>2. Add to Cart</h4>
+                        <p class="text-muted">Select the currencies or coupons you want and add them to your shopping cart.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="display-1 text-primary mb-3">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <h4>3. Secure Payment</h4>
+                        <p class="text-muted">Complete your purchase using our secure payment gateway with multiple options.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="display-1 text-primary mb-3">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <h4>4. Start Gaming</h4>
+                        <p class="text-muted">Receive your codes instantly and redeem them in your game to start playing!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+<section class="py-5 bg-primary">
+    <div class="container text-center">
+        <h2 class="text-white mb-4">Ready to Enhance Your Gaming Experience?</h2>
+        <p class="text-light mb-4">Join thousands of gamers who trust GamerZone for their in-game currency and coupon needs.</p>
+        <a href="{{ route('register') }}" class="btn btn-light btn-lg">
+            <i class="fas fa-user-plus me-2"></i> Sign Up Now - It's Free!
+        </a>
+    </div>
+</section>
+@endsection

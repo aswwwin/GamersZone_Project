@@ -1,0 +1,294 @@
+@extends('layouts.app')
+
+@section('title', 'My Profile - GamerZone')
+
+@section('content')
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">My Profile</li>
+        </ol>
+    </nav>
+    
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    
+    <!-- Profile Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="profile-image me-4">
+                            @if($user->profile_image)
+                                <img src="{{ asset('storage/profile/' . $user->profile_image) }}" alt="{{ $user->username }}" 
+                                     class="rounded-circle" width="100" height="100">
+                            @else
+                                <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white" 
+                                     style="width: 100px; height: 100px;">
+                                    <span class="display-4">{{ strtoupper(substr($user->username, 0, 1)) }}</span>
+                                </div>
+                            @endif
+                        </div>
+                        <div>
+                            <h2 class="mb-1">{{ $user->username }}</h2>
+                            <p class="text-muted mb-2">{{ $user->full_name ?: 'No name provided' }}</p>
+                            <p class="text-muted mb-2">
+                                <i class="fas fa-envelope me-2"></i> {{ $user->email }}
+                            </p>
+                            <p class="small text-muted mb-0">
+                                <i class="fas fa-calendar-alt me-2"></i> Member since: {{ $user->date_registered->format('F Y') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Profile Tabs -->
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush rounded-3">
+                        <a href="#profile-info" class="list-group-item list-group-item-action bg-dark text-light active" 
+                           data-bs-toggle="list">
+                            <i class="fas fa-user me-2"></i> Profile Information
+                        </a>
+                        <a href="#change-password" class="list-group-item list-group-item-action bg-dark text-light" 
+                           data-bs-toggle="list">
+                            <i class="fas fa-key me-2"></i> Change Password
+                        </a>
+                        <a href="#recent-orders" class="list-group-item list-group-item-action bg-dark text-light" 
+                           data-bs-toggle="list">
+                            <i class="fas fa-shopping-bag me-2"></i> Recent Orders
+                        </a>
+                        <a href="{{ route('orders.index') }}" class="list-group-item list-group-item-action bg-dark text-light">
+                            <i class="fas fa-history me-2"></i> Order History
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Profile Content -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-body">
+                    <div class="tab-content">
+                        <!-- Profile Information -->
+                        <div class="tab-pane fade show active" id="profile-info">
+                            <h4 class="mb-4"><i class="fas fa-user-edit text-primary me-2"></i> Update Profile</h4>
+                            
+                            <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                @method('PUT')
+                                
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Username</label>
+                                    <input type="text" class="form-control bg-dark text-light" id="username" 
+                                           value="{{ $user->username }}" disabled>
+                                    <small class="form-text text-muted">Username cannot be changed.</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control bg-dark text-light" id="email" 
+                                           value="{{ $user->email }}" disabled>
+                                    <small class="form-text text-muted">Email cannot be changed.</small>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="full_name" class="form-label">Full Name</label>
+                                    <input type="text" class="form-control bg-dark text-light @error('full_name') is-invalid @enderror" 
+                                           id="full_name" name="full_name" value="{{ old('full_name', $user->full_name) }}">
+                                    
+                                    @error('full_name')
+                                        <span class="invalid-feedback" role="alert">
+                                            <strong>{{ $message }}</strong>
+                                        </span>
+                                    @enderror
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="date_of_birth" class="form-label">Date of Birth</label>
+                                    <input type="date" class="form-control bg-dark text-light @error('date_of_birth') is-invalid @enderror" 
+                                           id="date_of_birth" name="date_of_birth" 
+                                           value="{{ old('date_of_birth', $user->date_of_birth ? $user->date_of_birth->format('Y-m-d') : '') }}">
+                                    
+                                    @error('date_of_birth')
+                                        <span class="invalid-feedback" role="alert">
+                                            <strong>{{ $message }}</strong>
+                                        </span>
+                                    @enderror
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label for="profile_image" class="form-label">Profile Image</label>
+                                    <input type="file" class="form-control bg-dark text-light @error('profile_image') is-invalid @enderror" 
+                                           id="profile_image" name="profile_image">
+                                    
+                                    @error('profile_image')
+                                        <span class="invalid-feedback" role="alert">
+                                            <strong>{{ $message }}</strong>
+                                        </span>
+                                    @enderror
+                                    <small class="form-text text-muted">Supported formats: JPEG, PNG, JPG, GIF (max 2MB)</small>
+                                </div>
+                                
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i> Update Profile
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Change Password -->
+                        <div class="tab-pane fade" id="change-password">
+                            <h4 class="mb-4"><i class="fas fa-lock text-primary me-2"></i> Change Password</h4>
+                            
+                            <form action="{{ route('profile.update') }}" method="POST">
+                                @csrf
+                                @method('PUT')
+                                
+                                <div class="mb-3">
+                                    <label for="current_password" class="form-label">Current Password</label>
+                                    <input type="password" class="form-control bg-dark text-light @error('current_password') is-invalid @enderror" 
+                                           id="current_password" name="current_password">
+                                    
+                                    @error('current_password')
+                                        <span class="invalid-feedback" role="alert">
+                                            <strong>{{ $message }}</strong>
+                                        </span>
+                                    @enderror
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">New Password</label>
+                                    <input type="password" class="form-control bg-dark text-light @error('password') is-invalid @enderror" 
+                                           id="password" name="password">
+                                    
+                                    @error('password')
+                                        <span class="invalid-feedback" role="alert">
+                                            <strong>{{ $message }}</strong>
+                                        </span>
+                                    @enderror
+                                    <small class="form-text text-muted">Minimum 8 characters, including letters and numbers.</small>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label for="password_confirmation" class="form-label">Confirm New Password</label>
+                                    <input type="password" class="form-control bg-dark text-light" 
+                                           id="password_confirmation" name="password_confirmation">
+                                </div>
+                                
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-key me-2"></i> Change Password
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Recent Orders -->
+                        <div class="tab-pane fade" id="recent-orders">
+                            <h4 class="mb-4"><i class="fas fa-shopping-bag text-primary me-2"></i> Recent Orders</h4>
+                            
+                            @if($recentOrders->count() > 0)
+                                <div class="table-responsive">
+                                    <table class="table table-dark table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Order ID</th>
+                                                <th>Date</th>
+                                                <th>Amount</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($recentOrders as $order)
+                                                <tr>
+                                                    <td>#{{ $order->order_id }}</td>
+                                                    <td>{{ $order->order_date->format('M d, Y') }}</td>
+                                                    <td>${{ number_format($order->total_amount, 2) }}</td>
+                                                    <td>
+                                                        @if($order->status == 'completed')
+                                                            <span class="badge bg-success">Completed</span>
+                                                        @elseif($order->status == 'processing')
+                                                            <span class="badge bg-info">Processing</span>
+                                                        @elseif($order->status == 'pending')
+                                                            <span class="badge bg-warning text-dark">Pending</span>
+                                                        @elseif($order->status == 'failed')
+                                                            <span class="badge bg-danger">Failed</span>
+                                                        @elseif($order->status == 'refunded')
+                                                            <span class="badge bg-secondary">Refunded</span>
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ route('orders.show', $order->order_id) }}" class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-eye"></i> View
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="text-center mt-3">
+                                    <a href="{{ route('orders.index') }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-history me-2"></i> View All Orders
+                                    </a>
+                                </div>
+                            @else
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i> You haven't placed any orders yet.
+                                </div>
+                                
+                                <div class="text-center mt-4">
+                                    <a href="{{ route('games.index') }}" class="btn btn-primary">
+                                        <i class="fas fa-shopping-cart me-2"></i> Shop Now
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('scripts')
+<script>
+    // Handle tab persistence with URL hash
+    document.addEventListener('DOMContentLoaded', function() {
+        // Activate tab based on URL hash
+        const hash = window.location.hash;
+        if (hash) {
+            const triggerEl = document.querySelector(`a[href="${hash}"]`);
+            if (triggerEl) {
+                new bootstrap.Tab(triggerEl).show();
+            }
+        }
+        
+        // Update URL hash when tabs are clicked
+        const tabTriggers = document.querySelectorAll('a[data-bs-toggle="list"]');
+        tabTriggers.forEach(function(tabTrigger) {
+            tabTrigger.addEventListener('shown.bs.tab', function(event) {
+                history.replaceState(null, null, event.target.getAttribute('href'));
+            });
+        });
+    });
+</script>
+@endsection

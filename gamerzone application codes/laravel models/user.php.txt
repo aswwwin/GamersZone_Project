@@ -1,0 +1,49 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable, HasApiTokens;
+    
+    protected $table = 'users';
+    protected $primaryKey = 'user_id';
+    
+    protected $fillable = [
+        'username',
+        'email',
+        'password',
+        'full_name',
+        'profile_image',
+        'date_of_birth',
+        'is_active',
+        'role'
+    ];
+    
+    protected $hidden = [
+        'password',
+    ];
+    
+    protected $casts = [
+        'date_of_birth' => 'date',
+        'date_registered' => 'datetime',
+        'last_login' => 'datetime',
+        'is_active' => 'boolean',
+    ];
+    
+    // Define relationships
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'user_id', 'user_id');
+    }
+    
+    public function chatbotQueries()
+    {
+        return $this->hasMany(ChatbotQuery::class, 'user_id', 'user_id');
+    }
+}

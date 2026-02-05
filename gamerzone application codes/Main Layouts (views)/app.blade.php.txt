@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title', 'GamerZone - Buy In-Game Currency & Coupons')</title>
+    
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary: #7B2CBF;
+            --secondary: #9D4EDD;
+            --accent: #FF7B54;
+            --dark: #240046;
+            --light: #E0AAFF;
+            --bg-dark: #121212;
+            --bg-card: #1E1E1E;
+            --text-light: #F8F9FA;
+        }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Nunito', sans-serif;
+        }
+        
+        .navbar {
+            background-color: var(--dark);
+            border-bottom: 2px solid var(--primary);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary);
+            border-color: var(--secondary);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--secondary);
+            border-radius: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(157, 78, 221, 0.3);
+        }
+        
+        .game-card-img {
+            height: 200px;
+            object-fit: cover;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+        
+        .currency-badge {
+            background-color: var(--accent);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .footer {
+            background-color: var(--dark);
+            border-top: 2px solid var(--primary);
+            padding: 2rem 0;
+        }
+        
+        /* Custom Animations */
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Chatbot styles */
+        .chatbot-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+        
+        .chatbot-toggle:hover {
+            background-color: var(--secondary);
+            transform: scale(1.1);
+        }
+    </style>
+    
+    @yield('styles')
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ route('home') }}">
+                <i class="fas fa-gamepad me-2"></i>
+                <span class="fw-bold">GamerZone</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('games.*') ? 'active' : '' }}" href="{{ route('games.index') }}">Games</a>
+                    </li>
+                </ul>
+                
+                <form class="d-flex me-3" action="{{ route('games.index') }}" method="GET">
+                    <input class="form-control me-2 bg-dark text-light border-secondary" type="search" 
+                           placeholder="Search games..." name="search">
+                    <button class="btn btn-outline-light" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+                
+                <div class="d-flex">
+                    @auth
+                        <a href="{{ route('cart') }}" class="btn btn-outline-light me-2">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="badge bg-danger">{{ session('cart_count', 0) }}</span>
+                        </a>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" 
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user me-1"></i> {{ Auth::user()->username }}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="userDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('profile') }}">
+                                        <i class="fas fa-user-circle me-2"></i> Profile
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('orders.index') }}">
+                                        <i class="fas fa-history me-2"></i> Order History
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form action="{{ route('logout') }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    @else
+                        <a href="{{ route('login') }}" class="btn btn-outline-light me-2">
+                            <i class="fas fa-sign-in-alt me-1"></i> Login
+                        </a>
+                        <a href="{{ route('register') }}" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-1"></i> Register
+                        </a>
+                    @endauth
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="py-4">
+        @yield('content')
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5 class="text-light">About GamerZone</h5>
+                    <p class="text-muted">
+                        Your one-stop destination for in-game currencies and coupons for all your favorite games.
+                        Safe, secure, and lightning-fast transactions.
+                    </p>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h5 class="text-light">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ route('home') }}" class="text-muted">Home</a></li>
+                        <li><a href="{{ route('games.index') }}" class="text-muted">Games</a></li>
+                        @auth
+                            <li><a href="{{ route('profile') }}" class="text-muted">My Profile</a></li>
+                            <li><a href="{{ route('orders.index') }}" class="text-muted">Order History</a></li>
+                        @else
+                            <li><a href="{{ route('login') }}" class="text-muted">Login</a></li>
+                            <li><a href="{{ route('register') }}" class="text-muted">Register</a></li>
+                        @endauth
+                    </ul>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h5 class="text-light">Contact Us</h5>
+                    <ul class="list-unstyled text-muted">
+                        <li><i class="fas fa-envelope me-2"></i> support@gamerzone.com</li>
+                        <li><i class="fas fa-phone me-2"></i> +1 (555) 123-4567</li>
+                        <li><i class="fas fa-map-marker-alt me-2"></i> Berlin, Germany</li>
+                    </ul>
+                    <div class="social-icons mt-3">
+                        <a href="#" class="text-light me-3"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-discord"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr class="border-secondary">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="text-muted">&copy; 2025 GamerZone. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <a href="#" class="text-muted me-3">Privacy Policy</a>
+                    <a href="#" class="text-muted me-3">Terms of Service</a>
+                    <a href="#" class="text-muted">FAQ</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Chatbot Toggle Button -->
+    <div class="chatbot-toggle pulse" id="chatbotToggle">
+        <i class="fas fa-headset fa-lg"></i>
+    </div>
+    
+    <!-- Chatbot Modal (placeholder) -->
+    <div class="modal fade" id="chatbotModal" tabindex="-1" aria-labelledby="chatbotModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="chatbotModalLabel">
+                        <i class="fas fa-robot me-2"></i> GamerZone Assistant
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Chatbot coming soon! This feature will be implemented in a future sprint.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltips.forEach(tooltip => {
+                new bootstrap.Tooltip(tooltip);
+            });
+            
+            // Chatbot toggle functionality
+            const chatbotToggle = document.getElementById('chatbotToggle');
+            chatbotToggle.addEventListener('click', function() {
+                const chatbotModal = new bootstrap.Modal(document.getElementById('chatbotModal'));
+                chatbotModal.show();
+            });
+        });
+    </script>
+    
+    @yield('scripts')
+</body>
+</html>

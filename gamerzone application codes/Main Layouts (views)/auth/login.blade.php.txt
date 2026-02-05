@@ -1,0 +1,113 @@
+@extends('layouts.app')
+
+@section('title', 'Login - GamerZone')
+
+@section('content')
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center py-3">
+                    <h4 class="mb-0"><i class="fas fa-sign-in-alt me-2"></i> Login to Your Account</h4>
+                </div>
+                
+                <div class="card-body p-4">
+                    @if(session('error'))
+                        <div class="alert alert-danger">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('login') }}">
+                        @csrf
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark text-light"><i class="fas fa-envelope"></i></span>
+                                <input id="email" type="email" class="form-control bg-dark text-light @error('email') is-invalid @enderror" 
+                                       name="email" value="{{ old('email') }}" required autocomplete="email" autofocus>
+                                
+                                @error('email')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                @enderror
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark text-light"><i class="fas fa-lock"></i></span>
+                                <input id="password" type="password" class="form-control bg-dark text-light @error('password') is-invalid @enderror" 
+                                       name="password" required autocomplete="current-password">
+                                
+                                @error('password')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                @enderror
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
+                            <label class="form-check-label" for="remember">
+                                Remember Me
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid mb-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt me-2"></i> Login
+                            </button>
+                        </div>
+                        
+                        <div class="text-center">
+                            <p class="mb-2">Don't have an account? <a href="{{ route('register') }}" class="text-primary">Register now</a></p>
+                            
+                            @if (Route::has('password.request'))
+                                <a class="text-muted" href="{{ route('password.request') }}">
+                                    <i class="fas fa-key me-1"></i> Forgot Your Password?
+                                </a>
+                            @endif
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Gaming Themed Graphics -->
+            <div class="text-center mt-4">
+                <p class="text-muted">
+                    <i class="fas fa-shield-alt text-primary me-2"></i> 
+                    Secure login with industry-standard encryption
+                </p>
+                <div class="d-flex justify-content-center gap-4 mt-3">
+                    <i class="fas fa-gamepad fa-2x text-primary"></i>
+                    <i class="fas fa-headset fa-2x text-secondary"></i>
+                    <i class="fas fa-coins fa-2x text-warning"></i>
+                    <i class="fas fa-trophy fa-2x text-success"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('styles')
+<style>
+    .card {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    
+    .card-header {
+        border-bottom: 3px solid var(--secondary);
+    }
+    
+    .form-control:focus, .btn:focus {
+        box-shadow: 0 0 0 0.25rem rgba(123, 44, 191, 0.25);
+    }
+</style>
+@endsection

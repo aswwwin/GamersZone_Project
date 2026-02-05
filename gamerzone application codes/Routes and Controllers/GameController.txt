@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Game;
+use Illuminate\Http\Request;
+
+class GameController extends Controller
+{
+    /**
+     * Display a listing of games.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request)
+    {
+        $query = Game::where('is_active', true);
+        
+        // Filter by genre if provided
+        if ($request->has('genre') && $request->genre != 'all') {
+            $query->where('genre', $request->genre);
+        }
+        
+        // Search by name if provided
+        if ($request->has('search') && !empty($request->search)) {
+            $query->where('game_name', 'like', '%' . $request->search . '%');
+        }
+        
+        $games = $query->paginate(12);
+        
+        // Get all unique genres for filter dropdown
+        $genres = Game::distinct()->pluck('genre')->filter()->sort();
+        
+        return view('games.index', compact('games', 'genres'));
+    }
+    
+    /**
+     * Display the specified game.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
+        $game = Game::findOrFail($id);
+        
+        // Get currencies and coupons for this game
+        $currencies = $game->inGameCurrencies()->where('is_active', true)->get();
+        $coupons = $game->coupons()
+                      ->where('is_active', true)
+                      ->whereDate('expiry_date', '>', now())
+                      ->get();
+        
+        return view('games.show', compact('game', 'currencies', 'coupons'));
+    }
+}

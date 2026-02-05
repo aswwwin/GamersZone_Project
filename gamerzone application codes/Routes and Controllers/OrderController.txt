@@ -1,0 +1,373 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Coupon;
+use App\Models\InGameCurrency;
+use App\Models\Order;
+use App\Models\OrderItem;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
+
+class OrderController extends Controller
+{
+    /**
+     * Display shopping cart
+     * 
+     * @return \Illuminate\View\View
+     */
+    public function cart()
+    {
+        $cart = Session::get('cart', []);
+        $cartItems = [];
+        $total = 0;
+        
+        foreach ($cart as $item) {
+            if ($item['type'] === 'currency') {
+                $currency = InGameCurrency::with('game')->find($item['id']);
+                if ($currency) {
+                    $cartItems[] = [
+                        'id' => $item['id'],
+                        'type' => 'currency',
+                        'name' => $currency->currency_name,
+                        'game' => $currency->game->game_name,
+                        'image_url' => $currency->image_url,
+                        'price' => $currency->price,
+                        'quantity' => $item['quantity'],
+                        'subtotal' => $currency->price * $item['quantity']
+                    ];
+                    $total += $currency->price * $item['quantity'];
+                }
+            } elseif ($item['type'] === 'coupon') {
+                $coupon = Coupon::with('game')->find($item['id']);
+                if ($coupon) {
+                    $cartItems[] = [
+                        'id' => $item['id'],
+                        'type' => 'coupon',
+                        'name' => $coupon->coupon_name,
+                        'game' => $coupon->game->game_name,
+                        'image_url' => $coupon->image_url,
+                        'price' => $coupon->price,
+                        'quantity' => $item['quantity'],
+                        'subtotal' => $coupon->price * $item['quantity']
+                    ];
+                    $total += $coupon->price * $item['quantity'];
+                }
+            }
+        }
+        
+        return view('orders.cart', compact('cartItems', 'total'));
+    }
+    
+    /**
+     * Add item to cart
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function addToCart(Request $request)
+    {
+        $request->validate([
+            'item_type' => 'required|in:currency,coupon',
+            'item_id' => 'required|integer',
+            'quantity' => 'nullable|integer|min:1'
+        ]);
+        
+        $itemType = $request->item_type;
+        $itemId = $request->item_id;
+        $quantity = $request->quantity ?? 1;
+        
+        // Verify that the item exists
+        $itemExists = false;
+        $itemName = null;
+        
+        if ($itemType === 'currency') {
+            $currency = InGameCurrency::find($itemId);
+            if ($currency && $currency->is_active) {
+                $itemExists = true;
+                $itemName = $currency->currency_name;
+            }
+        } elseif ($itemType === 'coupon') {
+            $coupon = Coupon::find($itemId);
+            if ($coupon && $coupon->is_active && $coupon->expiry_date > now()) {
+                $itemExists = true;
+                $itemName = $coupon->coupon_name;
+            }
+        }
+        
+        if (!$itemExists) {
+            return back()->with('error', 'The selected item is no longer available.');
+        }
+        
+        // Add to cart
+        $cart = Session::get('cart', []);
+        
+        // Check if item already exists in cart
+        $itemFound = false;
+        foreach ($cart as &$item) {
+            if ($item['type'] === $itemType && $item['id'] === $itemId) {
+                $item['quantity'] += $quantity;
+                $itemFound = true;
+                break;
+            }
+        }
+        
+        if (!$itemFound) {
+            $cart[] = [
+                'type' => $itemType,
+                'id' => $itemId,
+                'quantity' => $quantity
+            ];
+        }
+        
+        Session::put('cart', $cart);
+        Session::put('cart_count', count($cart));
+        
+        return back()->with('success', $itemName . ' added to your cart.');
+    }
+    
+    /**
+     * Remove item from cart
+     * 
+     * @param  int  $index
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function removeFromCart($index)
+    {
+        $cart = Session::get('cart', []);
+        
+        if (isset($cart[$index])) {
+            unset($cart[$index]);
+            $cart = array_values($cart); // Re-index array
+            
+            Session::put('cart', $cart);
+            Session::put('cart_count', count($cart));
+            
+            return back()->with('success', 'Item removed from your cart.');
+        }
+        
+        return back()->with('error', 'Item not found in your cart.');
+    }
+    
+    /**
+     * Display checkout page
+     * 
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
+    public function checkout()
+    {
+        $cart = Session::get('cart', []);
+        
+        if (empty($cart)) {
+            return redirect()->route('cart')->with('error', 'Your cart is empty. Add items before proceeding to checkout.');
+        }
+        
+        $cartItems = [];
+        $total = 0;
+        
+        foreach ($cart as $item) {
+            if ($item['type'] === 'currency') {
+                $currency = InGameCurrency::with('game')->find($item['id']);
+                if ($currency) {
+                    $cartItems[] = [
+                        'id' => $item['id'],
+                        'type' => 'currency',
+                        'name' => $currency->currency_name,
+                        'game' => $currency->game->game_name,
+                        'price' => $currency->price,
+                        'quantity' => $item['quantity'],
+                        'subtotal' => $currency->price * $item['quantity']
+                    ];
+                    $total += $currency->price * $item['quantity'];
+                }
+            } elseif ($item['type'] === 'coupon') {
+                $coupon = Coupon::with('game')->find($item['id']);
+                if ($coupon) {
+                    $cartItems[] = [
+                        'id' => $item['id'],
+                        'type' => 'coupon',
+                        'name' => $coupon->coupon_name,
+                        'game' => $coupon->game->game_name,
+                        'price' => $coupon->price,
+                        'quantity' => $item['quantity'],
+                        'subtotal' => $coupon->price * $item['quantity']
+                    ];
+                    $total += $coupon->price * $item['quantity'];
+                }
+            }
+        }
+        
+        // Get user details for checkout form
+        $user = Auth::user();
+        
+        return view('orders.checkout', compact('cartItems', 'total', 'user'));
+    }
+    
+    /**
+     * Store a new order.
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function store(Request $request)
+    {
+        $cart = Session::get('cart', []);
+        
+        if (empty($cart)) {
+            return redirect()->route('cart')->with('error', 'Your cart is empty. Add items before placing an order.');
+        }
+        
+        $request->validate([
+            'payment_method' => 'required|in:credit_card,paypal,crypto',
+        ]);
+        
+        // Calculate total
+        $total = 0;
+        $cartItems = [];
+        
+        foreach ($cart as $item) {
+            if ($item['type'] === 'currency') {
+                $currency = InGameCurrency::find($item['id']);
+                if ($currency && $currency->is_active) {
+                    $cartItems[] = [
+                        'type' => 'currency',
+                        'id' => $currency->currency_id,
+                        'price' => $currency->price,
+                        'quantity' => $item['quantity']
+                    ];
+                    $total += $currency->price * $item['quantity'];
+                }
+            } elseif ($item['type'] === 'coupon') {
+                $coupon = Coupon::find($item['id']);
+                if ($coupon && $coupon->is_active && $coupon->expiry_date > now()) {
+                    $cartItems[] = [
+                        'type' => 'coupon',
+                        'id' => $coupon->coupon_id,
+                        'price' => $coupon->price,
+                        'quantity' => $item['quantity']
+                    ];
+                    $total += $coupon->price * $item['quantity'];
+                }
+            }
+        }
+        
+        if (empty($cartItems)) {
+            return redirect()->route('cart')->with('error', 'The items in your cart are no longer available.');
+        }
+        
+        // Create order using transaction to ensure data integrity
+        try {
+            DB::beginTransaction();
+            
+            // Create order
+            $order = Order::create([
+                'user_id' => Auth::id(),
+                'order_date' => now(),
+                'total_amount' => $total,
+                'status' => 'pending',
+                'payment_method' => $request->payment_method
+            ]);
+            
+            // Create order items
+            foreach ($cartItems as $item) {
+                OrderItem::create([
+                    'order_id' => $order->order_id,
+                    'item_type' => $item['type'],
+                    'item_id_ref' => $item['id'],
+                    'quantity' => $item['quantity'],
+                    'price_per_unit' => $item['price'],
+                    'subtotal' => $item['price'] * $item['quantity']
+                ]);
+            }
+            
+            // Mock payment transaction for now (will be replaced with actual payment gateway later)
+            $order->paymentTransactions()->create([
+                'payment_amount' => $total,
+                'payment_date' => now(),
+                'payment_gateway' => $request->payment_method,
+                'gateway_transaction_id' => 'MOCK_' . uniqid(),
+                'status' => 'successful'
+            ]);
+            
+            // Update order status
+            $order->status = 'completed';
+            $order->save();
+            
+            DB::commit();
+            
+            // Clear the cart
+            Session::forget('cart');
+            Session::forget('cart_count');
+            
+            return redirect()->route('orders.show', $order->order_id)
+                           ->with('success', 'Order placed successfully!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to place your order. Please try again.');
+        }
+    }
+    
+    /**
+     * Display a listing of the user's orders.
+     * 
+     * @return \Illuminate\View\View
+     */
+    public function index()
+    {
+        $orders = Order::where('user_id', Auth::id())
+                      ->orderBy('order_date', 'desc')
+                      ->paginate(10);
+        
+        return view('orders.index', compact('orders'));
+    }
+    
+    /**
+     * Display the specified order.
+     * 
+     * @param  int  $id
+     * @return \Illuminate\View\View
+     */
+    public function show($id)
+    {
+        $order = Order::with(['orderItems', 'paymentTransactions'])
+                     ->where('user_id', Auth::id())
+                     ->findOrFail($id);
+        
+        // Get item details
+        $items = [];
+        foreach ($order->orderItems as $item) {
+            if ($item->item_type === 'currency') {
+                $currency = InGameCurrency::with('game')->find($item->item_id_ref);
+                if ($currency) {
+                    $items[] = [
+                        'type' => 'currency',
+                        'name' => $currency->currency_name,
+                        'game' => $currency->game->game_name,
+                        'image_url' => $currency->image_url,
+                        'price' => $item->price_per_unit,
+                        'quantity' => $item->quantity,
+                        'subtotal' => $item->subtotal
+                    ];
+                }
+            } elseif ($item->item_type === 'coupon') {
+                $coupon = Coupon::with('game')->find($item->item_id_ref);
+                if ($coupon) {
+                    $items[] = [
+                        'type' => 'coupon',
+                        'name' => $coupon->coupon_name,
+                        'code' => $coupon->coupon_code,
+                        'game' => $coupon->game->game_name,
+                        'image_url' => $coupon->image_url,
+                        'price' => $item->price_per_unit,
+                        'quantity' => $item->quantity,
+                        'subtotal' => $item->subtotal
+                    ];
+                }
+            }
+        }
+        
+        return view('orders.show', compact('order', 'items'));
+    }
+}

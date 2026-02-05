@@ -1,0 +1,37 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Game;
+use App\Models\InGameCurrency;
+use Illuminate\Http\Request;
+
+class CurrencyController extends Controller
+{
+    /**
+     * Display in-game currencies for a specific game.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function byGame($id)
+    {
+        $game = Game::findOrFail($id);
+        $currencies = $game->inGameCurrencies()->where('is_active', true)->get();
+        
+        return view('currencies.by_game', compact('game', 'currencies'));
+    }
+    
+    /**
+     * Display the specified currency.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
+        $currency = InGameCurrency::with('game')->findOrFail($id);
+        
+        return view('currencies.show', compact('currency'));
+    }
+}

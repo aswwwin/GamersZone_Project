@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Coupon extends Model
+{
+    use HasFactory;
+    
+    protected $table = 'coupons';
+    protected $primaryKey = 'coupon_id';
+    
+    protected $fillable = [
+        'game_id',
+        'coupon_code',
+        'coupon_name',
+        'description',
+        'discount_percent',
+        'fixed_amount',
+        'expiry_date',
+        'image_url',
+        'price',
+        'is_active'
+    ];
+    
+    // Define relationships
+    public function game()
+    {
+        return $this->belongsTo(Game::class, 'game_id', 'game_id');
+    }
+    
+    public function orderItems()
+    {
+        return $this->morphMany(OrderItem::class, 'item');
+    }
+}
